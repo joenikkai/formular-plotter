@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive mathematical function plotter">
+    <title>Function Plotter - Cartesian Plane Visualizer</title>
+    
+    <!-- Favicon (inline to avoid 404) -->
+    <link rel="icon" type="image/svg+xml" 
+          href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232563eb'/%3E%3Cline x1='10' y1='50' x2='90' y2='50' stroke='white' stroke-width='3'/%3E%3Cline x1='50' y1='10' x2='50' y2='90' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+    
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --color-background: #f8fafc;
+            --color-surface: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-error: #dc2626;
+            --color-axis: #334155;
+            --color-grid: #e2e8f0;
+            --color-plot-line: #2563eb;
+            
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 0.75rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            
+            --border-radius: 0.5rem;
+            --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --box-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+            
+            --transition-fast: 150ms ease;
+            --transition-medium: 300ms ease;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 800px;
+            padding: var(--spacing-xl);
+            margin: 0 auto;
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .app-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: var(--spacing-xs);
+            letter-spacing: -0.025em;
+        }
+
+        .app-subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-secondary);
+        }
+
+        .plotter-section {
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow-lg);
+            padding: var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xl);
+        }
+
+        .plot-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+            flex: 1;
+        }
+
+        .form-row {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--color-text);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--color-border);
+            border-radius: var(--border-radius);
+            transition: border-color var(--transition-fast);
+        }
+
+        .input-group:focus-within {
+            border-color: var(--color-primary);
+        }
+
+        .input-prefix {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--color-background);
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            border-right: 2px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        .form-input {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background-color: transparent;
+            color: var(--color-text);
+        }
+
+        .form-input::placeholder {
+            color: var(--color-text-secondary);
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+        }
+
+        .btn-primary {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--transition-fast), transform var(--transition-fast);
+            align-self: flex-start;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-indicator {
+            display: none;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .plot-result-container {
+            min-height: 400px;
+            border-top: 2px solid var(--color-border);
+            padding-top: var(--spacing-lg);
+        }
+
+        .plot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            color: var(--color-text-secondary);
+            text-align: center;
+            gap: var(--spacing-xs);
+        }
+
+        .plot-placeholder-example code {
+            background-color: var(--color-background);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.875rem;
+        }
+
+        .plot-canvas-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            animation: fadeIn var(--transition-medium);
+        }
+
+        .plot-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-height: 500px;
+            border: 1px solid var(--color-border);
+            border-radius: 0.25rem;
+            background-color: var(--color-surface);
+            overflow: hidden;
+        }
+
+        .plot-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .plot-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--color-background);
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .plot-expression {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .plot-error {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--color-error);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            animation: fadeIn var(--transition-medium);
+        }
+
+        .plot-error-header {
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .plot-error-message {
+            font-size: 0.875rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .app-container {
+                padding: var(--spacing-md);
+            }
+            
+            .plotter-section {
+                padding: var(--spacing-md);
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .app-title {
+                font-size: 1.75rem;
+            }
+            
+            .btn-primary {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-container" role="main">
+        <header class="app-header">
+            <h1 class="app-title">Function Plotter</h1>
+            <p class="app-subtitle">Visualize mathematical expressions on a Cartesian plane</p>
+        </header>
+
+        <section class="plotter-section" aria-label="Function plotter interface">
+            <form id="plot-form" class="plot-form" onsubmit="handlePlot(event)">
+                <div class="form-group">
+                    <label for="function-input" class="form-label">Enter function f(x):</label>
+                    <div class="input-group">
+                        <span class="input-prefix" aria-hidden="true">f(x) =</span>
+                        <input type="text" 
+                               id="function-input" 
+                               class="form-input" 
+                               placeholder="e.g., sin(x), x^2, 2*x + 1"
+                               autocomplete="off"
+                               spellcheck="false">
+                    </div>
+                    <small class="form-help">
+                        Supported: +, -, *, /, ^, parentheses, sin, cos, tan, sqrt, abs, log, exp, pi
+                    </small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="x-min" class="form-label">X Minimum:</label>
+                        <input type="number" id="x-min" class="form-input" value="-10" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label for="x-max" class="form-label">X Maximum:</label>
+                        <input type="number" id="x-max" class="form-input" value="10" step="any">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Plot Function</button>
+                
+                <div id="loading-indicator" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <span>Plotting...</span>
+                </div>
+            </form>
+
+            <div id="plot-result" class="plot-result-container">
+                <div class="plot-placeholder">
+                    <p>Enter a function above to see it plotted on the Cartesian plane.</p>
+                    <p class="plot-placeholder-example">Try: <code>sin(x)</code> or <code>x^2 - 4</code></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ============================================
+        // Expression Evaluator
+        // ============================================
+        class ExpressionEvaluator {
+            constructor(expression) {
+                if (!expression || expression.trim().length === 0) {
+                    throw new Error('Expression must be a non-empty string');
+                }
+                this.expression = expression.trim();
+                this.ast = this._parse(this.expression);
+            }
+
+            _tokenize(input) {
+                const tokens = [];
+                let i = 0;
+                
+                while (i < input.length) {
+                    const char = input[i];
+                    
+                    // Skip whitespace
+                    if (/\s/.test(char)) {
+                        i++;
+                        continue;
+                    }
+                    
+                    // Numbers
+                    if (/\d/.test(char) || (char === '.' && /\d/.test(input[i + 1] || ''))) {
+                        let num = '';
+                        while (i < input.length && /[\d.]/.test(input[i])) {
+                            num += input[i];
+                            i++;
+                        }
+                        tokens.push({ type: 'number', value: parseFloat(num) });
+                        continue;
+                    }
+                    
+                    // Identifiers
+                    if (/[a-zA-Z_]/.test(char)) {
+                        let id = '';
+                        while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) {
+                            id += input[i];
+                            i++;
+                        }
+                        id = id.toLowerCase();
+                        
+                        // Check for implicit multiplication
+                        const prev = tokens[tokens.length - 1];
+                        if (prev && (prev.type === 'number' || prev.type === 'rparen' || prev.type === 'identifier')) {
+                            tokens.push({ type: 'operator', value: '*' });
+                        }
+                        
+                        tokens.push({ type: 'identifier', value: id });
+                        continue;
+                    }
+                    
+                    // Operators
+                    if ('+-*/^%'.includes(char)) {
+                        tokens.push({ type: 'operator', value: char });
+                        i++;
+                        continue;
+                    }
+                    
+                    // Parentheses
+                    if (char === '(') {
+                        tokens.push({ type: 'lparen', value: char });
+                        i++;
+                        continue;
+                    }
+                    if (char === ')') {
+                        tokens.push({ type: 'rparen', value: char });
+                        i++;
+                        continue;
+                    }
+                    
+                    throw new Error(`Unexpected character: ${char}`);
+                }
+                
+                tokens.push({ type: 'eof', value: null });
+                return tokens;
+            }
+
+            _parse(input) {
+                const tokens = this._tokenize(input);
+                let pos = 0;
+                
+                const parseExpression = (minPrec) => {
+                    let left = parseUnary();
+                    
+                    while (pos < tokens.length) {
+                        const token = tokens[pos];
+                        if (token.type !== 'operator') break;
+                        
+                        const prec = this._getPrecedence(token.value);
+                        if (prec < minPrec) break;
+                        
+                        pos++;
+                        const nextMinPrec = token.value === '^' ? prec : prec + 1;
+                        const right = parseExpression(nextMinPrec);
+                        
+                        left = {
+                            type: 'binary',
+                            operator: token.value,
+                            left: left,
+                            right: right
+                        };
+                    }
+                    
+                    return left;
+                };
+                
+                const parseUnary = () => {
+                    const token = tokens[pos];
+                    
+                    if (token.type === 'operator' && token.value === '-') {
+                        pos++;
+                        return { type: 'unary', operator: '-', operand: parseUnary() };
+                    }
+                    
+                    if (token.type === 'operator' && token.value === '+') {
+                        pos++;
+                        return parseUnary();
+                    }
+                    
+                    return parsePrimary();
+                };
+                
+                const parsePrimary = () => {
+                    const token = tokens[pos];
+                    
+                    if (token.type === 'number') {
+                        pos++;
+                        return { type: 'number', value: token.value };
+                    }
+                    
+                    if (token.type === 'identifier') {
+                        pos++;
+                        
+                        // Function call
+                        if (tokens[pos] && tokens[pos].type === 'lparen') {
+                            pos++; // consume '('
+                            const arg = parseExpression(0);
+                            if (tokens[pos].type !== 'rparen') {
+                                throw new Error('Missing closing parenthesis');
+                            }
+                            pos++; // consume ')'
+                            return { type: 'function', name: token.value, argument: arg };
+                        }
+                        
+                        // Constant
+                        if (token.value === 'pi') {
+                            return { type: 'number', value: Math.PI };
+                        }
+                        if (token.value === 'e') {
+                            return { type: 'number', value: Math.E };
+                        }
+                        
+                        // Variable
+                        if (token.value === 'x') {
+                            return { type: 'variable', name: 'x' };
+                        }
+                        
+                        throw new Error(`Unknown identifier: ${token.value}`);
+                    }
+                    
+                    if (token.type === 'lparen') {
+                        pos++; // consume '('
+                        const expr = parseExpression(0);
+                        if (tokens[pos].type !== 'rparen') {
+                            throw new Error('Missing closing parenthesis');
+                        }
+                        pos++; // consume ')'
+                        return expr;
+                    }
+                    
+                    throw new Error(`Unexpected token: ${token.type}`);
+                };
+                
+                const ast = parseExpression(0);
+                return ast;
+            }
+
+            _getPrecedence(operator) {
+                const precedence = {
+                    '+': 1,
+                    '-': 1,
+                    '*': 2,
+                    '/': 2,
+                    '%': 2,
+                    '^': 3
+                };
+                return precedence[operator] || 0;
+            }
+
+            _evaluate(node, x) {
+                if (!node) return 0;
+                
+                switch (node.type) {
+                    case 'number':
+                        return node.value;
+                        
+                    case 'variable':
+                        return x;
+                        
+                    case 'unary':
+                        return -this._evaluate(node.operand, x);
+                        
+                    case 'binary':
+                        const left = this._evaluate(node.left, x);
+                        const right = this._evaluate(node.right, x);
+                        
+                        switch (node.operator) {
+                            case '+': return left + right;
+                            case '-': return left - right;
+                            case '*': return left * right;
+                            case '/':
+                                if (right === 0) throw new Error('Division by zero');
+                                return left / right;
+                            case '^': return Math.pow(left, right);
+                            case '%': return left % right;
+                            default: throw new Error(`Unknown operator: ${node.operator}`);
+                        }
+                        
+                    case 'function':
+                        const arg = this._evaluate(node.argument, x);
+                        return this._applyFunction(node.name, arg);
+                        
+                    default:
+                        throw new Error(`Unknown node type: ${node.type}`);
+                }
+            }
+
+            _applyFunction(name, value) {
+                switch (name) {
+                    case 'sin': return Math.sin(value);
+                    case 'cos': return Math.cos(value);
+                    case 'tan': return Math.tan(value);
+                    case 'asin': return Math.asin(value);
+                    case 'acos': return Math.acos(value);
+                    case 'atan': return Math.atan(value);
+                    case 'sinh': return Math.sinh(value);
+                    case 'cosh': return Math.cosh(value);
+                    case 'tanh': return Math.tanh(value);
+                    case 'sqrt': return Math.sqrt(value);
+                    case 'cbrt': return Math.cbrt(value);
+                    case 'abs': return Math.abs(value);
+                    case 'log': return Math.log10(value);
+                    case 'ln': return Math.log(value);
+                    case 'log2': return Math.log2(value);
+                    case 'exp': return Math.exp(value);
+                    case 'floor': return Math.floor(value);
+                    case 'ceil': return Math.ceil(value);
+                    case 'round': return Math.round(value);
+                    case 'sign': return Math.sign(value);
+                    default: throw new Error(`Unknown function: ${name}`);
+                }
+            }
+
+            evaluateAt(x) {
+                const result = this._evaluate(this.ast, x);
+                if (!isFinite(result)) {
+                    throw new Error('Result is not finite');
+                }
+                return result;
+            }
+        }
+
+        // ============================================
+        // Cartesian Plotter
+        // ============================================
+        class CartesianPlotter {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.config = {
+                    padding: 40,
+                    gridColor: '#e2e8f0',
+                    axisColor: '#334155',
+                    lineColor: '#2563eb',
+                    lineWidth: 2,
+                    fontSize: 11,
+                    fontFamily: 'monospace'
+                };
+            }
+
+            plot(expression, xMin, xMax, points) {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Clear
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                
+                const plotArea = {
+                    left: this.config.padding,
+                    right: width - this.config.padding,
+                    top: this.config.padding,
+                    bottom: height - this.config.padding
+                };
+                
+                // Calculate Y range
+                let minY = Infinity;
+                let maxY = -Infinity;
+                for (const point of points) {
+                    if (point.y !== null && isFinite(point.y)) {
+                        minY = Math.min(minY, point.y);
+                        maxY = Math.max(maxY, point.y);
+                    }
+                }
+                if (!isFinite(minY) || !isFinite(maxY)) {
+                    minY = -10;
+                    maxY = 10;
+                }
+                const yPadding = (maxY - minY) * 0.1 || 1;
+                minY -= yPadding;
+                maxY += yPadding;
+                
+                // Draw grid
+                this._drawGrid(plotArea, xMin, xMax, minY, maxY);
+                
+                // Draw axes
+                this._drawAxes(plotArea, xMin, xMax, minY, maxY);
+                
+                // Draw labels
+                this._drawLabels(plotArea, xMin, xMax, minY, maxY);
+                
+                // Draw function
+                this._drawFunction(plotArea, xMin, xMax, minY, maxY, points);
+            }
+
+            _mapX(area, xMin, xMax, x) {
+                return area.left + ((x - xMin) / (xMax - xMin)) * (area.right - area.left);
+            }
+
+            _mapY(area, yMin, yMax, y) {
+                return area.bottom - ((y - yMin) / (yMax - yMin)) * (area.bottom - area.top);
+            }
+
+            _drawGrid(area, xMin, xMax, yMin, yMax) {
+                const ctx = this.ctx;
+                ctx.strokeStyle = this.config.gridColor;
+                ctx.lineWidth = 1;
+                
+                // Vertical lines
+                const xStep = this._niceStep(xMax - xMin, 10);
+                for (let x = Math.ceil(xMin / xStep) * xStep; x <= xMax; x += xStep) {
+                    const canvasX = this._mapX(area, xMin, xMax, x);
+                    ctx.beginPath();
+                    ctx.moveTo(canvasX, area.top);
+                    ctx.lineTo(canvasX, area.bottom);
+                    ctx.stroke();
+                }
+                
+                // Horizontal lines
+                const yStep = this._niceStep(yMax - yMin, 10);
+                for (let y = Math.ceil(yMin / yStep) * yStep; y <= yMax; y += yStep) {
+                    const canvasY = this._mapY(area, yMin, yMax, y);
+                    ctx.beginPath();
+                    ctx.moveTo(area.left, canvasY);
+                    ctx.lineTo(area.right, canvasY);
+                    ctx.stroke();
+                }
+            }
+
+            _drawAxes(area, xMin, xMax, yMin, yMax) {
+                const ctx = this.ctx;
+                ctx.strokeStyle = this.config.axisColor;
+                ctx.lineWidth = 1.5;
+                
+                // X-axis
+                if (yMin <= 0 && yMax >= 0) {
+                    const canvasY = this._mapY(area, yMin, yMax, 0);
+                    ctx.beginPath();
+                    ctx.moveTo(area.left, canvasY);
+                    ctx.lineTo(area.right, canvasY);
+                    ctx.stroke();
+                }
+                
+                // Y-axis
+                if (xMin <= 0 && xMax >= 0) {
+                    const canvasX = this._mapX(area, xMin, xMax, 0);
+                    ctx.beginPath();
+                    ctx.moveTo(canvasX, area.top);
+                    ctx.lineTo(canvasX, area.bottom);
+                    ctx.stroke();
+                }
+            }
+
+            _drawLabels(area, xMin, xMax, yMin, yMax) {
+                const ctx = this.ctx;
+                ctx.fillStyle = this.config.axisColor;
+                ctx.font = `${this.config.fontSize}px ${this.config.fontFamily}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                
+                // X labels
+                const xStep = this._niceStep(xMax - xMin, 10);
+                for (let x = Math.ceil(xMin / xStep) * xStep; x <= xMax; x += xStep) {
+                    const canvasX = this._mapX(area, xMin, xMax, x);
+                    const canvasY = this._mapY(area, yMin, yMax, 0);
+                    ctx.fillText(this._formatNumber(x), canvasX, canvasY + 5);
+                }
+                
+                // Y labels
+                const yStep = this._niceStep(yMax - yMin, 10);
+                for (let y = Math.ceil(yMin / yStep) * yStep; y <= yMax; y += yStep) {
+                    const canvasX = this._mapX(area, xMin, xMax, 0);
+                    const canvasY = this._mapY(area, yMin, yMax, y);
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this._formatNumber(y), canvasX - 5, canvasY);
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                }
+            }
+
+            _drawFunction(area, xMin, xMax, yMin, yMax, points) {
+                const ctx = this.ctx;
+                ctx.strokeStyle = this.config.lineColor;
+                ctx.lineWidth = this.config.lineWidth;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                
+                let isDrawing = false;
+                
+                for (const point of points) {
+                    if (point.y === null || !isFinite(point.y)) {
+                        isDrawing = false;
+                        continue;
+                    }
+                    
+                    const canvasX = this._mapX(area, xMin, xMax, point.x);
+                    const canvasY = this._mapY(area, yMin, yMax, point.y);
+                    
+                    if (canvasY < area.top - 100 || canvasY > area.bottom + 100) {
+                        isDrawing = false;
+                        continue;
+                    }
+                    
+                    if (!isDrawing) {
+                        ctx.beginPath();
+                        ctx.moveTo(canvasX, canvasY);
+                        isDrawing = true;
+                    } else {
+                        ctx.lineTo(canvasX, canvasY);
+                    }
+                }
+                
+                if (isDrawing) {
+                    ctx.stroke();
+                }
+            }
+
+            _niceStep(range, targetLines) {
+                const roughStep = range / targetLines;
+                const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+                const normalizedStep = roughStep / magnitude;
+                
+                let niceStep;
+                if (normalizedStep < 1.5) niceStep = 1;
+                else if (normalizedStep < 3) niceStep = 2;
+                else if (normalizedStep < 7) niceStep = 5;
+                else niceStep = 10;
+                
+                return niceStep * magnitude;
+            }
+
+            _formatNumber(value) {
+                if (value === 0) return '0';
+                const absValue = Math.abs(value);
+                if (absValue >= 1000000 || absValue < 0.001) {
+                    return value.toExponential(1);
+                }
+                return value.toPrecision(3).replace(/\.?0+$/, '');
+            }
+        }
+
+        // ============================================
+        // Plot Handler
+        // ============================================
+        function handlePlot(event) {
+            event.preventDefault();
+            
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const resultContainer = document.getElementById('plot-result');
+            const expressionInput = document.getElementById('function-input');
+            const xMinInput = document.getElementById('x-min');
+            const xMaxInput = document.getElementById('x-max');
+            
+            // Show loading
+            loadingIndicator.style.display = 'flex';
+            
+            setTimeout(() => {
+                try {
+                    const expression = expressionInput.value.trim();
+                    const xMin = parseFloat(xMinInput.value);
+                    const xMax = parseFloat(xMaxInput.value);
+                    
+                    // Validate
+                    if (!expression) {
+                        throw new Error('Please enter a function expression.');
+                    }
+                    if (isNaN(xMin) || isNaN(xMax)) {
+                        throw new Error('X-axis range must be valid numbers.');
+                    }
+                    if (xMin >= xMax) {
+                        throw new Error('X minimum must be less than X maximum.');
+                    }
+                    
+                    // Evaluate
+                    const evaluator = new ExpressionEvaluator(expression);
+                    const points = [];
+                    const numPoints = 500;
+                    const step = (xMax - xMin) / numPoints;
+                    
+                    for (let i = 0; i <= numPoints; i++) {
+                        const x = xMin + i * step;
+                        try {
+                            const y = evaluator.evaluateAt(x);
+                            points.push({ x, y });
+                        } catch {
+                            points.push({ x, y: null });
+                        }
+                    }
+                    
+                    // Create plot
+                    const container = document.createElement('div');
+                    container.className = 'plot-canvas-container';
+                    
+                    const canvasWrapper = document.createElement('div');
+                    canvasWrapper.className = 'plot-canvas-wrapper';
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'plot-canvas';
+                    canvas.width = 600;
+                    canvas.height = 600;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    
+                    canvasWrapper.appendChild(canvas);
+                    
+                    const infoBar = document.createElement('div');
+                    infoBar.className = 'plot-info';
+                    
+                    const exprLabel = document.createElement('span');
+                    exprLabel.className = 'plot-expression';
+                    exprLabel.textContent = `f(x) = ${expression}`;
+                    
+                    const rangeLabel = document.createElement('span');
+                    rangeLabel.textContent = `x ∈ [${xMin}, ${xMax}]`;
+                    
+                    infoBar.appendChild(exprLabel);
+                    infoBar.appendChild(rangeLabel);
+                    
+                    container.appendChild(canvasWrapper);
+                    container.appendChild(infoBar);
+                    
+                    resultContainer.innerHTML = '';
+                    resultContainer.appendChild(container);
+                    
+                    // Draw plot
+                    const plotter = new CartesianPlotter(canvas);
+                    plotter.plot(expression, xMin, xMax, points);
+                    
+                } catch (error) {
+                    console.error('Plot error:', error);
+                    resultContainer.innerHTML = `
+                        <div class="plot-error" role="alert">
+                            <div class="plot-error-header">Error</div>
+                            <div class="plot-error-message">${error.message}</div>
+                        </div>
+                    `;
+                } finally {
+                    loadingIndicator.style.display = 'none';
+                }
+            }, 100);
+        }
+
+        // Console confirmation that script loaded
+        console.log('Function Plotter loaded successfully');
+    </script>
+</body>
+</html>
